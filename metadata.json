@@ -1,0 +1,8 @@
+{
+  "name": "SafeBite",
+  "description": "A real-time, agentic AI food risk intelligence app using Gemini.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
