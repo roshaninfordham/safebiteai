@@ -1,16 +1,20 @@
-import React, { useState, useCallback } from 'react';
-import { AgentService } from './services/agentService';
+import React, { useState, useCallback, useEffect } from 'react';
 import InputHub from './components/InputHub';
 import Timeline from './components/Timeline';
 import ResultsView from './components/ResultsView';
 import Avatar from './components/Avatar';
 import { AgentStep, InputType, SafeBiteResponse, SafetyFlag, UserPrefs } from './types';
+import { startRun, streamRun } from './services/apiClient';
+import { playVoice, voiceAvailable } from './services/voice';
 
 const App: React.FC = () => {
   const [steps, setSteps] = useState<AgentStep[]>([]);
   const [result, setResult] = useState<SafeBiteResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [showAvatar, setShowAvatar] = useState(false);
+  const [voiceReady, setVoiceReady] = useState(false);
+  const [avatarUrl] = useState<string | undefined>(import.meta.env.VITE_AVATAR_IFRAME_URL);
+  const [cleanup, setCleanup] = useState<(() => void) | null>(null);
 
   // Default User Prefs (Simulated)
   const prefs: UserPrefs = {
@@ -30,23 +34,53 @@ const App: React.FC = () => {
     });
   }, []);
 
+  useEffect(() => {
+    setVoiceReady(voiceAvailable());
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, []);
+
   const handleScan = async (type: InputType, data: string | { mimeType: string; data: string }) => {
     setLoading(true);
     setSteps([]);
     setResult(null);
     setShowAvatar(false);
-
-    const agent = new AgentService(handleStepUpdate);
+    if (cleanup) cleanup();
 
     try {
-      const response = await agent.runAgent(data, type, prefs);
-      setResult(response);
-      
-      // Trigger Avatar if unsafe
-      if (response.safety_flag === SafetyFlag.UNSAFE || response.safety_flag === SafetyFlag.CAUTION) {
-        // Optional: Auto-trigger avatar for risky items
-        // setShowAvatar(true); 
+      const payload: any = { input_type: type, prefs };
+      if (type === InputType.IMAGE && typeof data === 'object') {
+        payload.image_base64 = data.data;
+        payload.mime_type = data.mimeType;
+      } else if (type === InputType.BARCODE) {
+        payload.barcode = data as string;
+      } else if (type === InputType.RECIPE) {
+        payload.recipe = data as string;
+        payload.raw_text = data as string;
+      } else {
+        payload.raw_text = data as string;
       }
+
+      const sessionId = await startRun(payload);
+      const stop = streamRun(sessionId, {
+        onStep: (step) => handleStepUpdate(step),
+        onFinal: (resp) => {
+          setResult(resp);
+          if (resp.safety_flag === SafetyFlag.UNSAFE || resp.safety_flag === SafetyFlag.CAUTION) {
+            setShowAvatar(true);
+          }
+          if (voiceReady) {
+            playVoice(resp.explanation_short).catch(() => {});
+          }
+          setLoading(false);
+        },
+        onError: (err) => {
+          handleStepUpdate({ id: 'error', label: err, status: 'error', timestamp: new Date().toISOString() });
+          setLoading(false);
+        }
+      });
+      setCleanup(() => stop);
     } catch (error) {
       console.error(error);
       handleStepUpdate({
@@ -65,6 +99,7 @@ const App: React.FC = () => {
     setResult(null);
     setSteps([]);
     setShowAvatar(false);
+    if (cleanup) cleanup();
   };
 
   return (
@@ -108,10 +143,15 @@ const App: React.FC = () => {
 
         <Timeline steps={steps} />
         
-        <ResultsView result={result} onReset={handleReset} />
+        <ResultsView 
+          result={result} 
+          onReset={handleReset} 
+          onPlayVoice={(text) => playVoice(text).catch(() => {})}
+          voiceEnabled={voiceReady}
+        />
       </main>
       
-      <Avatar show={showAvatar} />
+      <Avatar show={showAvatar} onClose={() => setShowAvatar(false)} src={avatarUrl} />
       
       {/* Background decoration */}
       <div className="fixed top-[-10%] right-[-10%] w-[50%] h-[50%] bg-green-200/20 rounded-full blur-3xl pointer-events-none -z-10"></div>

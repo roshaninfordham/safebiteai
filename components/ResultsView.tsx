@@ -4,9 +4,11 @@ import { SafeBiteResponse, SafetyFlag } from '../types';
 interface ResultsViewProps {
   result: SafeBiteResponse | null;
   onReset: () => void;
+  onPlayVoice?: (text: string) => void;
+  voiceEnabled?: boolean;
 }
 
-const ResultsView: React.FC<ResultsViewProps> = ({ result, onReset }) => {
+const ResultsView: React.FC<ResultsViewProps> = ({ result, onReset, onPlayVoice, voiceEnabled }) => {
   if (!result) return null;
 
   const getSafetyColor = (flag: SafetyFlag) => {
@@ -37,6 +39,14 @@ const ResultsView: React.FC<ResultsViewProps> = ({ result, onReset }) => {
                 {result.safety_score}
               </div>
               <span className="text-xs text-gray-400 uppercase font-bold">Safety Score</span>
+              {voiceEnabled && onPlayVoice && (
+                <button
+                  onClick={() => onPlayVoice(result.explanation_short)}
+                  className="mt-2 text-xs px-3 py-1 rounded-full bg-green-100 text-green-700 hover:bg-green-200"
+                >
+                  🔊 Play voice
+                </button>
+              )}
             </div>
           </div>
           

@@ -2,6 +2,7 @@ import { ai, GEMINI_MODEL_FAST } from './gemini';
 import { AgentStep, InputType, SafeBiteResponse, UserPrefs } from '../types';
 import { toolsDef, executeTool } from './tools';
 import { Type, Part } from '@google/genai';
+import { callAgentKit } from './agentKitClient';
 
 type StepCallback = (step: AgentStep) => void;
 
@@ -70,6 +71,39 @@ export class AgentService {
 
     try {
       this.emit('init', 'Initializing Agent...', 'running');
+
+      // If a backend powered by the Agent Starter Pack is configured, route the request there.
+      if (import.meta.env.VITE_AGENT_KIT_URL) {
+        this.emit('init', 'Using Agent Starter Pack backend', 'completed');
+        this.emit('reasoning', 'Dispatching request to backend...', 'running');
+
+        const payload = {
+          user_prompt: typeof input === 'string' ? input : 'Image uploaded by user',
+          input_type: inputType,
+          prefs,
+        };
+
+        if (inputType === InputType.IMAGE && typeof input === 'object') {
+          payload.image_base64 = input.data;
+          payload.mime_type = input.mimeType;
+        }
+        if (inputType === InputType.BARCODE && typeof input === 'string') {
+          payload.barcode = input;
+        }
+        if (inputType === InputType.TEXT || inputType === InputType.RECIPE) {
+          payload.raw_text = input as string;
+        }
+
+        const kitResult = await callAgentKit(payload);
+        const normalized: SafeBiteResponse = {
+          ...kitResult,
+          session_id: kitResult.session_id || sessionId,
+        };
+
+        this.emit('reasoning', 'Backend processing complete', 'completed');
+        this.emit('finalizing', 'Report Ready', 'completed');
+        return normalized;
+      }
 
       // 1. Initialize Chat with Tools
       const chat = ai.chats.create({

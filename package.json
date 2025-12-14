@@ -6,12 +6,17 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "mock-agent-kit": "node server/mockAgentKitServer.js",
+    "api": "node server/index.js",
+    "smoke": "node server/smoke.js"
   },
   "dependencies": {
     "react-dom": "^19.2.3",
     "@google/genai": "^1.33.0",
-    "react": "^19.2.3"
+    "react": "^19.2.3",
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

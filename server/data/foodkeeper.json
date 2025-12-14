@@ -1,0 +1,39 @@
+{
+  "items": [
+    {
+      "name": "Chicken (raw)",
+      "category": "poultry",
+      "fridge_days": 2,
+      "freezer_months": 9,
+      "notes": "Refrigerate promptly; discard if left above 40°F for >2 hours."
+    },
+    {
+      "name": "Ground beef",
+      "category": "beef",
+      "fridge_days": 2,
+      "freezer_months": 4,
+      "notes": "High spoilage risk; keep cold and cook to 160°F."
+    },
+    {
+      "name": "Leafy greens",
+      "category": "produce",
+      "fridge_days": 5,
+      "freezer_months": 0,
+      "notes": "Wash thoroughly; watch for recalls (E. coli risk)."
+    },
+    {
+      "name": "Milk",
+      "category": "dairy",
+      "fridge_days": 7,
+      "freezer_months": 1,
+      "notes": "Keep at or below 40°F; discard if sour smell."
+    },
+    {
+      "name": "Canned beans",
+      "category": "pantry",
+      "fridge_days": 3,
+      "freezer_months": 2,
+      "notes": "If can is bulging or rusted, discard immediately."
+    }
+  ]
+}
